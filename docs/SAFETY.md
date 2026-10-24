@@ -9,12 +9,12 @@ Aman is **screening and referral support, not diagnosis.** Every result shows: "
 - The most urgent matching rule wins. Every outcome returns reason keys, so the explanation is shown in the user's language.
 - **Missing critical answers never produce a reassuring result.** If age, a danger sign, or another required answer is unknown, the outcome is at least `REFER_SOON` and the case is flagged for human review.
 
-## Audio: one-way support signal
+## Audio: experimental information only
 
-- Audio can only raise `HOME` to `REFER_SOON`. The rule is in `protocol.json`: cough must be true, and `audioScore` must be a finite number from 0 to 1 at or above `tauHigh`. The reason key is `audio_abnormal_sounds` and `audioEscalated` is true. Audio never lowers urgency and never produces `GO_NOW`. The loader rejects any other escalation target.
-- A missing score is ignored. A score that is not finite or not inside 0 to 1 does not escalate and sets `needsHumanReview`.
-- `tauHigh` is chosen on synthetic validation subjects (specificity at least 0.80 when possible, otherwise the best Youden index) and written into `protocol.json` by `ml/train.py`. It is not a clinical threshold.
-- The score is shown as a support signal trained on synthetic tones, not children. A high AUROC in `ml/metrics.json` is separation of synthetic tones only.
+- **Audio-driven referral escalation is disabled in this prototype.** Dataset checks have not established that phone-recorded pediatric cough scores can support referral changes. `protocol.json` sets `audio.escalationEnabled: false`, the loader refuses any other value, and `audioEscalated` is always false. The audio score never changes `HOME`, `REFER_SOON` or `GO_NOW`, and never adds a reason.
+- The score is displayed as "Experimental audio score - information only. It does not change the referral decision."
+- `ml/metrics.json` records a research operating point chosen on synthetic validation subjects (specificity at least 0.80 when possible, otherwise the best Youden index). It is marked `usedByDecision: false`, is not written into `protocol.json`, and is not a clinical threshold.
+- A high AUROC in `ml/metrics.json` is separation of synthetic tones only.
 - The current model is trained on **synthetic tones**: not children, not phone-recorded cough, not real recordings. Its metrics measure how well it separates two kinds of synthetic tone, not clinical performance.
 - Evaluation uses **subject-level splits** (GroupShuffleSplit and GroupKFold on `subject_id`), because each subject contributes several recordings. Splitting by recording alone would leak a subject's voice and recording conditions across splits. `ml/train.py` asserts zero subject overlap, and a test checks `ml/metrics.json`.
 - Any future dataset must follow the same rule. **SPRSound** is pediatric *stethoscope* (auscultation) lung-sound audio. Results on it are stethoscope lung-sound results, not phone-cough validation, and they need patient-level splits. COUGHVID and Coswara (both CC BY 4.0) are candidate phone-cough datasets but are mostly adult and were not used.

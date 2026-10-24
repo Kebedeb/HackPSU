@@ -71,24 +71,23 @@ describe('cases API', () => {
     expect(body.decision.outcome).toBe('GO_NOW');
   });
 
-  it('recomputes audio escalation and ignores a client HOME decision', async () => {
+  it('a maximal audio score never escalates and is kept for display only', async () => {
     const payload = submission(
       { audio: { score: 1, modelVersion: 'test', experimental: true }, decision: { outcome: 'HOME', reasonKeys: ['no_concerning_signs'], protocolVersion: 'x', audioEscalated: false } } as never,
       mk({ s: { cough: true, coughDays: 2 } }),
     );
     const body = (await ctx.app.inject({ method: 'POST', url: '/api/cases', payload })).json();
-    expect(body.decision.outcome).toBe('REFER_SOON');
-    expect(body.decision.reasonKeys).toEqual(['audio_abnormal_sounds']);
-    expect(body.decision.audioEscalated).toBe(true);
+    expect(body.decision.outcome).toBe('HOME');
+    expect(body.decision.reasonKeys).not.toContain('audio_abnormal_sounds');
+    expect(body.decision.audioEscalated).toBe(false);
     expect(body.audio.score).toBe(1);
   });
 
-  it('an invalid audio score does not escalate and flags review', async () => {
+  it('an out-of-range audio score does not change the decision', async () => {
     const payload = submission({ audio: { score: 4, modelVersion: 'test', experimental: true } } as never, mk({ s: { cough: true, coughDays: 2 } }));
     const body = (await ctx.app.inject({ method: 'POST', url: '/api/cases', payload })).json();
     expect(body.decision.outcome).toBe('HOME');
     expect(body.decision.audioEscalated).toBe(false);
-    expect(body.needsHumanReview).toBe(true);
   });
 
   it('audio never downgrades a GO_NOW decision', async () => {

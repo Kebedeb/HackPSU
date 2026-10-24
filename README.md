@@ -9,7 +9,7 @@ A community health worker answers the child-illness chart questions on a phone, 
 ## What decides the referral
 
 - Only the rule-based protocol engine (`packages/protocol`) decides. The thresholds in `packages/protocol/protocol.json` are copied from the published WHO IMCI / IMNCI chart booklet and cited there. The loader refuses to run if any `TODO` is left in.
-- **Audio can only raise `HOME` to `REFER_SOON`.** That happens only when cough is true and the score is a finite value from 0 to 1 at or above `tauHigh` in `protocol.json`. It never lowers urgency and never produces `GO_NOW`. An invalid score does not escalate and flags the case for review. `tauHigh` is chosen on synthetic validation tones. The head does not choose the outcome.
+- **Audio-driven referral escalation is disabled.** The cough score is experimental information only and never changes `HOME`, `REFER_SOON` or `GO_NOW`. `protocol.json` sets `audio.escalationEnabled: false` and the loader refuses anything else.
 - Missing answers never produce `HOME`; the case becomes at least `REFER_SOON` and is flagged for human review.
 - Gemini only transcribes and extracts facts from voice notes. It never picks the outcome.
 

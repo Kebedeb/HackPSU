@@ -80,8 +80,12 @@ describe('ml/metrics.json honesty', () => {
     expect(m.thresholdSelection.rule).toMatch(/specificity >= 0\.80/);
     expect(m.thresholdSelection.rule).toMatch(/Youden/);
     expect(m.thresholdSelection.value).toBe(m.tauHigh);
+    expect(m.usedForReferral).toBe(false);
+    expect(m.experimentalResearchThreshold.usedByDecision).toBe(false);
+    expect(m.limitationsFirst.join(' ')).not.toMatch(/raise HOME/);
     const protocol = JSON.parse(readFileSync(repo('packages/protocol/protocol.json'), 'utf8'));
-    expect(protocol.tauHigh).toBe(m.tauHigh);
+    expect(protocol.tauHigh).toBeUndefined();
+    expect(protocol.audio.escalationEnabled).toBe(false);
   });
 
   it('never presents SPRSound as phone-cough validation', () => {
