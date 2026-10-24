@@ -1,0 +1,181 @@
+{
+  "version": "aman-imci-2014-zwe-imnci-2016-v1",
+  "source": "WHO. Revised WHO classification and treatment of childhood pneumonia at health facilities: quick reference guide. Geneva: WHO; 2014 (WHO/FWC/MCA/14.9), https://iris.who.int/handle/10665/137332. Numeric cutoffs as printed in the Zimbabwe Integrated Management of Neonatal and Childhood Illness chart booklet, October 2016 (national adaptation aligned with the 2014 revision): 'Assess and classify the sick child age 2 months up to 5 years: cough or difficult breathing' and 'Sick young infant age 0 up to 2 months: check for very severe disease', https://platform.who.int/docs/default-source/mca-documents/policy-documents/operational-guidance/ZWE-CH-14-01-OPERATIONALGUIDANCE-2016-eng-IMNCI-Chart-Booklet.pdf. Before any real deployment, replace this file with the national IMNCI booklet in use (Pakistan or Ethiopia) and have a clinician review it.",
+  "outcomeMapping": {
+    "GO_NOW": "The chart says 'Refer URGENTLY to hospital' (pink row).",
+    "REFER_SOON": "The chart says treat at a health facility, or refer for non-urgent assessment, or this form cannot collect what the chart needs to classify the sign (yellow row or coverage limit).",
+    "HOME": "The chart says home care and advise when to return (green row). This prototype never dispenses medicine."
+  },
+  "ageRangeMonths": {
+    "min": 0,
+    "maxExclusive": 60
+  },
+  "youngInfantMaxAgeMonthsExclusive": 2,
+  "fastBreathing": [
+    {
+      "minAgeMonths": 0,
+      "maxAgeMonthsExclusive": 2,
+      "ratePerMin": 60,
+      "note": "Sick young infant: fast breathing is 60 breaths per minute or more. Counted for every sick young infant, with or without cough."
+    },
+    {
+      "minAgeMonths": 2,
+      "maxAgeMonthsExclusive": 12,
+      "ratePerMin": 50,
+      "note": "2 months up to 12 months: 50 breaths per minute or more."
+    },
+    {
+      "minAgeMonths": 12,
+      "maxAgeMonthsExclusive": 60,
+      "ratePerMin": 40,
+      "note": "12 months up to 5 years: 40 breaths per minute or more. A child of exactly 12 months uses 40 (WHO IMCI in-service training module 1)."
+    }
+  ],
+  "coughDaysGreaterThan": 14,
+  "screeningActionMap": {
+    "urgentReferral": "GO_NOW",
+    "clinicTreatmentOrNonUrgentReferral": "REFER_SOON",
+    "homeCare": "HOME",
+    "note": "This product does not dispense medicine and does not diagnose. Chart urgent referral maps to GO_NOW. Chart clinic treatment or non-urgent referral maps to REFER_SOON. Chart home care maps to HOME."
+  },
+  "limitations": [
+    "HIV-exposed children with chest indrawing are an urgent referral on the chart. This form has no HIV field, so that exception is not applied. Chest indrawing from 2 months up to 5 years stays REFER_SOON.",
+    "Diarrhoea without a dehydration classification is REFER_SOON because this form does not collect general condition, sunken eyes, drinking, skin pinch, or blood. This is a form-coverage limit, not a new cutoff.",
+    "Fever at 2 months or older is REFER_SOON because stiff neck, a malaria test, and duration are not on this form. Do not send an unassessed fever to HOME.",
+    "Pakistan and Ethiopia national IMNCI booklets were not the numeric source. A real deployment replaces this file with the national booklet first.",
+    "Age 60 months or older is outside this chart. That is a scope limit, not a new clinical cutoff."
+  ],
+  "dangerSigns": [
+    "unableToDrinkOrFeed",
+    "vomitsEverything",
+    "convulsions",
+    "unusuallySleepyOrUnconscious"
+  ],
+  "criticalFields": [
+    "ageMonths",
+    "unableToDrinkOrFeed",
+    "vomitsEverything",
+    "convulsions",
+    "unusuallySleepyOrUnconscious",
+    "cough",
+    "difficultyBreathing",
+    "chestIndrawing",
+    "stridorWhenCalm",
+    "fever",
+    "diarrhea"
+  ],
+  "conditionallyCriticalFields": [
+    {
+      "field": "breathRatePerMin",
+      "when": "COUGH_OR_DIFFICULT_BREATHING",
+      "note": "The chart counts breaths for every child with cough or difficult breathing."
+    },
+    {
+      "field": "breathRatePerMin",
+      "when": "YOUNG_INFANT",
+      "note": "The chart counts breaths for every sick young infant."
+    },
+    {
+      "field": "coughDays",
+      "when": "COUGH",
+      "note": "The chart asks 'for how long?' for every cough."
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1",
+      "when": "ANY_DANGER_SIGN",
+      "outcome": "GO_NOW",
+      "reasonKey": "danger_sign",
+      "source": "Any general danger sign: refer URGENTLY."
+    },
+    {
+      "id": "R2",
+      "when": "STRIDOR_WHEN_CALM",
+      "outcome": "GO_NOW",
+      "reasonKey": "stridor_when_calm",
+      "source": "Pink row, cough or difficult breathing, age 2 months up to 5 years: stridor in a calm child is urgent referral. Also applied when age is unknown, because both chart bands are urgent, so an unknown age must not drop the tier. This is screening support, not a diagnosis."
+    },
+    {
+      "id": "R2b",
+      "when": "STRIDOR_YOUNG_INFANT",
+      "outcome": "GO_NOW",
+      "reasonKey": "stridor_when_calm",
+      "source": "Young infant chart: severe respiratory signs are urgent referral. Explicit rule: stridor when calm at age under 2 months is GO_NOW. This is screening support, not a diagnosis."
+    },
+    {
+      "id": "R3",
+      "when": "YOUNG_INFANT_CHEST_INDRAWING",
+      "outcome": "GO_NOW",
+      "reasonKey": "young_infant_chest_indrawing",
+      "source": "Young infant with severe chest indrawing: refer URGENTLY."
+    },
+    {
+      "id": "R4",
+      "when": "YOUNG_INFANT_FAST_BREATHING",
+      "outcome": "GO_NOW",
+      "reasonKey": "young_infant_fast_breathing",
+      "source": "Young infant with fast breathing (60 or more per minute): refer URGENTLY."
+    },
+    {
+      "id": "R5",
+      "when": "YOUNG_INFANT_FEVER",
+      "outcome": "GO_NOW",
+      "reasonKey": "young_infant_fever",
+      "source": "Young infant with fever (37.5 C or above, or feels hot): refer URGENTLY. This form records fever as yes/no only."
+    },
+    {
+      "id": "R6",
+      "when": "CHEST_INDRAWING",
+      "outcome": "REFER_SOON",
+      "reasonKey": "chest_indrawing",
+      "source": "2 months up to 5 years with chest indrawing: yellow row, treated at a health facility. The chart's HIV-exposed exception (refer) cannot be applied because this form has no HIV field."
+    },
+    {
+      "id": "R7",
+      "when": "FAST_BREATHING",
+      "outcome": "REFER_SOON",
+      "reasonKey": "fast_breathing",
+      "source": "2 months up to 5 years with cough or difficult breathing and fast breathing for age: yellow row, treated at a health facility."
+    },
+    {
+      "id": "R8",
+      "when": "COUGH_MORE_THAN_DAYS",
+      "outcome": "REFER_SOON",
+      "reasonKey": "cough_more_than_14_days",
+      "source": "Coughing for more than 14 days: refer for assessment."
+    },
+    {
+      "id": "R9",
+      "when": "FEVER_NEEDS_ASSESSMENT",
+      "outcome": "REFER_SOON",
+      "reasonKey": "fever_needs_chart_assessment",
+      "source": "Form coverage limit, not a new cutoff: the chart's fever box needs stiff neck, malaria test and duration, which this form does not collect."
+    },
+    {
+      "id": "R10",
+      "when": "DIARRHEA_NEEDS_DEHYDRATION_CHECK",
+      "outcome": "REFER_SOON",
+      "reasonKey": "diarrhea_needs_dehydration_check",
+      "source": "Form coverage limit, not a new cutoff: the chart classifies diarrhoea by dehydration signs (general condition, sunken eyes, drinking, skin pinch, blood in stool), which this form does not collect."
+    },
+    {
+      "id": "R11",
+      "when": "AGE_OUTSIDE_RANGE",
+      "outcome": "REFER_SOON",
+      "reasonKey": "age_outside_range",
+      "source": "Scope limit: the chart covers age 0 up to 5 years only."
+    },
+    {
+      "id": "R12",
+      "when": "NO_CONCERNING_SIGNS",
+      "outcome": "HOME",
+      "reasonKey": "no_concerning_signs",
+      "source": "No signs needing referral on this form: home care and advise when to return immediately."
+    }
+  ],
+  "audio": {
+    "escalationEnabled": false,
+    "note": "Experimental audio score - information only. It does not change the referral decision."
+  }
+}

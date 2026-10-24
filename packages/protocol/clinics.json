@@ -1,0 +1,10 @@
+[
+  { "id": "pk-lhr", "name": "Synthetic Clinic A (Lahore outskirts)", "lat": 31.4504, "lng": 74.2295, "capacityRemaining": 4, "languages": ["ur", "en"], "region": "Punjab, Pakistan", "synthetic": true },
+  { "id": "pk-kasur", "name": "Synthetic Clinic B (near Kasur)", "lat": 31.1167, "lng": 74.45, "capacityRemaining": 2, "languages": ["ur"], "region": "Punjab, Pakistan", "synthetic": true },
+  { "id": "pk-sheikh", "name": "Synthetic Clinic C (near Sheikhupura)", "lat": 31.7131, "lng": 73.9783, "capacityRemaining": 0, "languages": ["ur", "en"], "region": "Punjab, Pakistan", "synthetic": true },
+  { "id": "pk-okara", "name": "Synthetic Clinic D (near Okara)", "lat": 30.8081, "lng": 73.4458, "capacityRemaining": 3, "languages": ["ur"], "region": "Punjab, Pakistan", "synthetic": true },
+  { "id": "et-debre", "name": "Synthetic Clinic E (near Debre Berhan)", "lat": 9.6797, "lng": 39.5322, "capacityRemaining": 3, "languages": ["am", "en"], "region": "Ethiopian highlands", "synthetic": true },
+  { "id": "et-dessie", "name": "Synthetic Clinic F (near Dessie)", "lat": 11.1333, "lng": 39.6333, "capacityRemaining": 2, "languages": ["am"], "region": "Ethiopian highlands", "synthetic": true },
+  { "id": "et-bahir", "name": "Synthetic Clinic G (near Bahir Dar)", "lat": 11.5936, "lng": 37.3908, "capacityRemaining": 5, "languages": ["am", "en"], "region": "Ethiopian highlands", "synthetic": true },
+  { "id": "et-fiche", "name": "Synthetic Clinic H (near Fiche)", "lat": 9.8, "lng": 38.7333, "capacityRemaining": 1, "languages": ["am"], "region": "Ethiopian highlands", "synthetic": true }
+]
