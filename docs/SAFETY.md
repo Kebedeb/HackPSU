@@ -9,7 +9,7 @@ Aman is **screening and referral support, not diagnosis.** Every result shows: "
 - The most urgent matching rule wins. Every outcome returns reason keys, so the explanation is shown in the user's language.
 - **Missing critical answers never produce a reassuring result.** If age, a danger sign, or another required answer is unknown, the outcome is at least `REFER_SOON` and the case is flagged for human review.
 
-## Audio: experimental information only
+## Audio: experimental and display-only
 
 - **Audio-driven referral escalation is disabled in this prototype.** Dataset checks have not established that phone-recorded pediatric cough scores can support referral changes. `protocol.json` sets `audio.escalationEnabled: false`, the loader refuses any other value, and `audioEscalated` is always false. The audio score never changes `HOME`, `REFER_SOON` or `GO_NOW`, and never adds a reason.
 - The score is displayed as "Experimental audio score - information only. It does not change the referral decision."
