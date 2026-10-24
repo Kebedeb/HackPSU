@@ -1,0 +1,84 @@
+@import 'tailwindcss';
+
+@font-face {
+  font-family: 'Noto Sans Ethiopic';
+  src: url('/fonts/noto-sans-ethiopic-ethiopic-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Sans Ethiopic';
+  src: url('/fonts/noto-sans-ethiopic-ethiopic-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Naskh Arabic';
+  src: url('/fonts/noto-naskh-arabic-arabic-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Naskh Arabic';
+  src: url('/fonts/noto-naskh-arabic-arabic-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+
+@theme {
+  --color-paper: #f6f1e7;
+  --color-paper-deep: #ece4d4;
+  --color-ink: #1f2a2a;
+  --color-ink-soft: #55615f;
+  --color-teal: #0f4c4a;
+  --color-teal-soft: #d5e6e2;
+  --color-home: #2f6b3a;
+  --color-home-bg: #e3efdf;
+  --color-soon: #8a5a00;
+  --color-soon-bg: #fbecc8;
+  --color-now: #a3261b;
+  --color-now-bg: #f8dcd6;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Ethiopic', 'Noto Naskh Arabic', sans-serif;
+}
+
+html,
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+[lang='ur'] {
+  font-family: 'Noto Naskh Arabic', var(--font-sans);
+  line-height: 1.9;
+}
+[lang='am'] {
+  font-family: 'Noto Sans Ethiopic', var(--font-sans);
+}
+
+@utility btn {
+  @apply inline-flex min-h-14 items-center justify-center rounded-2xl px-5 py-3 text-lg font-semibold transition active:scale-[0.98] disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-teal text-paper shadow-sm hover:brightness-110;
+}
+@utility btn-quiet {
+  @apply btn border-2 border-teal/25 bg-white/60 text-teal hover:bg-white;
+}
+@utility card {
+  @apply rounded-3xl border border-ink/10 bg-white/70 p-5 shadow-[0_1px_0_rgba(0,0,0,0.04)];
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+  .print-card {
+    border: 2px solid #000;
+    box-shadow: none;
+  }
+}

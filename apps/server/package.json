@@ -1,0 +1,25 @@
+{
+  "name": "server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@aman/content": "workspace:*",
+    "@aman/protocol": "workspace:*",
+    "@aman/types": "workspace:*",
+    "@google/genai": "^2.31.0",
+    "better-sqlite3": "^13.0.3",
+    "fastify": "^5.12.7",
+    "grammy": "^1.46.0",
+    "tsx": "^4.23.15",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.10.0"
+  }
+}

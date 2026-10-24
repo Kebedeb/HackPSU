@@ -1,0 +1,29 @@
+{
+  "name": "aman",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@10.33.4",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter web --filter server dev",
+    "build": "pnpm --filter web build",
+    "start": "pnpm --filter server start",
+    "test": "vitest run",
+    "typecheck": "tsc -p apps/web/tsconfig.json && tsc -p apps/server/tsconfig.json",
+    "seed": "pnpm --filter server exec tsx src/seed.ts",
+    "train": "python3 ml/train.py"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.5"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "esbuild"
+    ]
+  }
+}

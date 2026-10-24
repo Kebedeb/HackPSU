@@ -1,0 +1,99 @@
+import { Bot, InlineKeyboard } from 'grammy';
+import { AGE_BUCKETS, caregiverCard, reasonText, t } from '@aman/content';
+import { LANGS, type CaseEvent, type CaseRecord, type Lang } from '@aman/types';
+import { getCase, saveCase, type DB } from './db';
+import { applyFollowup, buildVoiceCase, nextFollowup, VOICE_FOLLOWUP_FIELDS, type Extractor, type FollowupField } from './voice';
+
+function questionKey(field: FollowupField): string {
+  return field === 'ageMonths' ? 'age_title' : `q_${field}`;
+}
+
+function keyboardFor(c: CaseRecord, field: FollowupField): InlineKeyboard {
+  const idx = VOICE_FOLLOWUP_FIELDS.indexOf(field);
+  const kb = new InlineKeyboard();
+  if (field === 'ageMonths') {
+    AGE_BUCKETS.forEach((b, i) => kb.text(t(c.language, b.key), `a|${c.id}|${idx}|b${i}`).row());
+  } else {
+    kb.text(t(c.language, 'yes'), `a|${c.id}|${idx}|y`).text(t(c.language, 'no'), `a|${c.id}|${idx}|n`);
+  }
+  return kb;
+}
+
+export function decisionMessage(c: CaseRecord): string {
+  const L = c.language;
+  const card = caregiverCard(L, c.decision.outcome, c.symptoms);
+  const lines = [
+    `*${t(L, `decision_${c.decision.outcome}`)}*`,
+    '',
+    ...c.decision.reasonKeys.map((k) => `• ${reasonText(L, k)}`),
+  ];
+  if (c.needsHumanReview) lines.push('', t(L, 'needs_review'));
+  lines.push('', card.title, ...card.lines, '', card.returnTitle, ...card.returnSigns.map((s) => `• ${s}`), '', t(L, 'banner'));
+  if (card.draft) lines.push(`(${t(L, 'draft_translation')})`);
+  return lines.join('\n');
+}
+
+export function startBot(token: string, db: DB, extractor: Extractor, emit: (e: CaseEvent) => void): Bot {
+  const bot = new Bot(token);
+  const store = (c: CaseRecord, type: CaseEvent['type']) => {
+    saveCase(db, c);
+    emit({ type, case: c });
+  };
+
+  const askOrDecide = async (chatId: number, c: CaseRecord) => {
+    const field = nextFollowup(c);
+    if (field) {
+      await bot.api.sendMessage(chatId, `${t(c.language, 'voice_followup')}\n${t(c.language, questionKey(field))}`, {
+        reply_markup: keyboardFor(c, field),
+      });
+    } else {
+      await bot.api.sendMessage(chatId, decisionMessage(c), { parse_mode: 'Markdown' });
+    }
+  };
+
+  bot.command('start', (ctx) =>
+    ctx.reply('Aman demo bot. Send a voice note about a sick child in Urdu, Amharic or English. Synthetic demo only; not a diagnosis.'),
+  );
+
+  bot.on(['message:voice', 'message:audio'], async (ctx) => {
+    const fileInfo = ctx.message.voice ?? ctx.message.audio;
+    if (!fileInfo) return;
+    const userLang = (LANGS as readonly string[]).includes(ctx.from?.language_code ?? '') ? (ctx.from!.language_code as Lang) : 'en';
+    try {
+      const file = await ctx.getFile();
+      const res = await fetch(`https://api.telegram.org/file/bot${token}/${file.file_path}`);
+      const audio = Buffer.from(await res.arrayBuffer());
+      const extraction = await extractor(audio, fileInfo.mime_type ?? 'audio/ogg');
+      const c = buildVoiceCase(extraction, userLang);
+      store(c, 'case_upserted');
+      if (extraction.unclear || extraction.language === 'other') {
+        await ctx.reply(t(c.language, 'voice_unclear'));
+        return;
+      }
+      await askOrDecide(ctx.chat.id, c);
+    } catch (err) {
+      console.error('voice note failed', err);
+      await ctx.reply(t(userLang, 'voice_unclear'));
+    }
+  });
+
+  bot.on('callback_query:data', async (ctx) => {
+    const [kind, id, idxStr, val] = ctx.callbackQuery.data.split('|');
+    await ctx.answerCallbackQuery();
+    if (kind !== 'a') return;
+    const c = getCase(db, id);
+    const field = VOICE_FOLLOWUP_FIELDS[Number(idxStr)];
+    if (!c || !field || !ctx.chat) return;
+    const value = field === 'ageMonths' ? AGE_BUCKETS[Number(val.slice(1))]?.ageMonths : val === 'y';
+    if (value === undefined) return;
+    const next = applyFollowup(c, field, value);
+    store(next, 'case_updated');
+    await askOrDecide(ctx.chat.id, next);
+  });
+
+  bot.catch((err) => console.error('telegram bot error', err.error));
+  bot.start({ onStart: (me) => console.log(`Telegram bot @${me.username} polling`) }).catch((err) => {
+    console.error('Telegram bot stopped; the rest of the server keeps running.', err);
+  });
+  return bot;
+}
