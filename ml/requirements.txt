@@ -1,0 +1,5 @@
+# librosa and TensorFlow are intentionally not used: features come from ml/features.py,
+# which shares the exact radix-2 FFT, window and mel bank with the browser code so the
+# golden-file parity test holds. scikit-learn only trains the logistic-regression head.
+numpy>=2.0
+scikit-learn>=1.5
