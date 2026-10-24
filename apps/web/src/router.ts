@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 
-export function navigate(path: string): void {
+export function navigate(path: string, { replace = false } = {}): void {
   if (path === window.location.pathname) return;
-  window.history.pushState({}, '', path);
+  if (replace) window.history.replaceState({}, '', path);
+  else window.history.pushState({}, '', path);
   window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
