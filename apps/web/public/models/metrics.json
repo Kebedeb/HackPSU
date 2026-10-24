@@ -3,7 +3,7 @@
     "Synthetic tones only: generated noise bursts, tones and clicks.",
     "Not children. Not phone-recorded cough. No real recordings of any kind.",
     "A high AUROC here is separation of synthetic tones only. It is not clinical performance.",
-    "The score can only raise HOME to REFER_SOON when cough is true and the score is at or above tauHigh. It never lowers urgency and never sets GO_NOW.",
+    "Experimental audio score - information only. Audio-driven referral escalation is disabled; the score never changes HOME, REFER_SOON, or GO_NOW.",
     "COUGHVID and Coswara (CC BY 4.0) were not downloaded. ICBHI 2017 was not used."
   ],
   "modelVersion": "synthetic-tones-logreg-v1",
@@ -104,7 +104,7 @@
   "experimentalResearchThreshold": {
     "value": 0.831185,
     "selectionRule": "On the validation subjects, pick a threshold with specificity >= 0.80 if possible (highest sensitivity, then the higher threshold); otherwise the best Youden index. highest validation sensitivity with specificity >= 0.8. Chosen on validation subjects only. High AUROC on this file is separation of synthetic tones only, not clinical performance.",
-    "usedByDecision": true
+    "usedByDecision": false
   },
   "stabilityNote": "Only 12 subjects per held-out split, so single-split numbers swing widely. Read the grouped cross-validation spread, not one number.",
   "groupedCrossValidation": {

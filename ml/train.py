@@ -1,8 +1,8 @@
 """Train a logistic head on synthetic tones and write honest metrics.
 
-The head does not choose HOME, REFER_SOON, or GO_NOW. Training writes tauHigh into
-protocol.json. The protocol may only raise HOME to REFER_SOON when cough is true and
-the score is at or above tauHigh. Nothing here is clinical performance.
+The head does not choose HOME, REFER_SOON, or GO_NOW. Audio-driven referral escalation
+is disabled: the score is experimental, display-only information and the protocol
+ignores it. Nothing here is clinical performance.
 
 Every recording carries a subject_id. Splits are made by subject (GroupShuffleSplit),
 never by recording, because each synthetic subject contributes several recordings.
@@ -168,7 +168,7 @@ def main():
             "Synthetic tones only: generated noise bursts, tones and clicks.",
             "Not children. Not phone-recorded cough. No real recordings of any kind.",
             "A high AUROC here is separation of synthetic tones only. It is not clinical performance.",
-            "The score can only raise HOME to REFER_SOON when cough is true and the score is at or above tauHigh. It never lowers urgency and never sets GO_NOW.",
+            "Experimental audio score - information only. Audio-driven referral escalation is disabled; the score never changes HOME, REFER_SOON, or GO_NOW.",
             "COUGHVID and Coswara (CC BY 4.0) were not downloaded. ICBHI 2017 was not used.",
         ],
         "modelVersion": MODEL_VERSION,
@@ -194,7 +194,7 @@ def main():
         "experimentalResearchThreshold": {
             "value": tau_high,
             "selectionRule": selection,
-            "usedByDecision": True,
+            "usedByDecision": False,
         },
         "stabilityNote": "Only 12 subjects per held-out split, so single-split numbers swing widely. Read the grouped cross-validation spread, not one number.",
         "groupedCrossValidation": {
@@ -206,11 +206,6 @@ def main():
         "validation": report(y[val], s_all[val], thr),
         "test": report(y[test], s_all[test], thr),
     }
-
-    proto_path = REPO / "packages" / "protocol" / "protocol.json"
-    proto = json.loads(proto_path.read_text())
-    proto["tauHigh"] = tau_high
-    proto_path.write_text(json.dumps(proto, indent=2, ensure_ascii=False) + "\n")
 
     (ROOT / "metrics.json").write_text(json.dumps(metrics, indent=2) + "\n")
     for out in [ROOT / "export" / "head.json", REPO / "apps" / "web" / "public" / "models" / "head.json"]:
