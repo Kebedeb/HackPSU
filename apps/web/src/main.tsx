@@ -5,12 +5,14 @@ import { Clinic } from './Clinic';
 import { FieldFlow } from './FieldFlow';
 import { LangContext, useT } from './i18n';
 import { Limits } from './Limits';
+import { ROLE_LINKS, roleAllows, roleHome, useRole, type Role } from './role';
+import { RolePicker } from './RolePicker';
 import { navigate, usePath } from './router';
 import { pendingCount, syncNow } from './store';
 import { Voice } from './Voice';
 import './styles.css';
 
-function Header() {
+function Header({ role, onChangeRole }: { role: Role | null; onChangeRole: () => void }) {
   const { t } = useT();
   const path = usePath();
   const [online, setOnline] = useState(navigator.onLine);
@@ -44,16 +46,18 @@ function Header() {
   return (
     <header className="no-print sticky top-0 z-[1000] border-b border-ink/10 bg-paper/95 backdrop-blur" dir="ltr">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-4 py-2">
-        <button className="mr-2 flex items-center gap-2" onClick={() => navigate('/')}>
+        <button className="mr-2 flex items-center gap-2" onClick={() => role && navigate(roleHome(role))}>
           <img src="/icon.svg" alt="" className="h-8 w-8" />
           <span className="text-xl font-black tracking-tight text-teal">Aman</span>
         </button>
-        <nav className="flex flex-wrap gap-1">
-          {link('/', 'Field')}
-          {link('/clinic', t('clinic_link'))}
-          {link('/voice', t('voice_link'))}
-          {link('/limits', t('limits_link'))}
-        </nav>
+        {role && (
+          <nav className="flex flex-wrap gap-1">
+            {ROLE_LINKS[role].map((l) => link(l.to, t(l.labelKey)))}
+            <button className="rounded-lg px-2 py-1 text-sm font-semibold text-ink-soft underline hover:bg-ink/5" onClick={onChangeRole}>
+              {t(`role_${role}`)} · {t('change_role')}
+            </button>
+          </nav>
+        )}
         <div className="ml-auto flex items-center gap-2 text-xs">
           <span className={`rounded-full px-2 py-1 font-bold ${online ? 'bg-home-bg text-home' : 'bg-soon-bg text-soon'}`}>{online ? t('online') : t('offline')}</span>
           {pending > 0 && (
@@ -75,10 +79,26 @@ function App() {
     document.documentElement.lang = lang;
   }, [lang]);
 
-  const page = path.startsWith('/clinic') ? <Clinic /> : path.startsWith('/voice') ? <Voice /> : path.startsWith('/limits') ? <Limits /> : <FieldFlow />;
+  const [role, setRole] = useRole();
+  const allowed = role !== null && roleAllows(role, path);
+  useEffect(() => {
+    if (role && !allowed) navigate(roleHome(role), { replace: true });
+  }, [role, allowed]);
+
+  const page = !role ? (
+    <RolePicker onPick={setRole} />
+  ) : !allowed ? null : path.startsWith('/clinic') ? (
+    <Clinic />
+  ) : path.startsWith('/voice') ? (
+    <Voice />
+  ) : path.startsWith('/limits') ? (
+    <Limits />
+  ) : (
+    <FieldFlow />
+  );
   return (
     <LangContext.Provider value={{ lang, setLang }}>
-      <Header />
+      <Header role={role} onChangeRole={() => setRole(null)} />
       <main>{page}</main>
     </LangContext.Provider>
   );
