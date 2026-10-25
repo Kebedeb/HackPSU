@@ -64,6 +64,8 @@ export function FieldFlow() {
   const [caseId, setCaseId] = useState(() => crypto.randomUUID());
   const [createdAt, setCreatedAt] = useState(() => new Date().toISOString());
   const location = useMemo(() => jitter(REGIONS[region].center), [region, caseId]);
+  // Any change after saving (e.g. going back to fix an answer) needs a fresh save; the server upserts by id.
+  useEffect(() => setSaved('no'), [ageMonths, symptoms, breathRate, clip, region, lang]);
 
   const steps = useMemo(() => buildSteps(symptoms), [symptoms]);
   const step = steps[Math.min(idx, steps.length - 1)];

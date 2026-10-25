@@ -26,7 +26,6 @@ export interface ServerConfig {
   geminiApiKey?: string;
   geminiModel: string;
   telegramToken?: string;
-  publicUrl?: string;
 }
 
 export function readConfig(): ServerConfig {
@@ -39,6 +38,5 @@ export function readConfig(): ServerConfig {
     geminiApiKey: process.env.GEMINI_API_KEY || undefined,
     geminiModel: process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL,
     telegramToken: process.env.TELEGRAM_BOT_TOKEN || undefined,
-    publicUrl: process.env.PUBLIC_URL || undefined,
   };
 }

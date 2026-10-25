@@ -111,7 +111,7 @@ export function caseLanguage(e: Extraction, fallback: Lang = 'en'): Lang {
  * unknown whatever the extraction or a follow-up says, and the outcome is floored at REFER_SOON
  * with human review, so a voice note never ends in HOME even if the protocol config changes.
  */
-function decide(c: Omit<CaseRecord, 'decision' | 'missingFields' | 'needsHumanReview'>, forceReview: boolean): CaseRecord {
+function decide(c: Omit<CaseRecord, 'decision' | 'missingFields' | 'needsHumanReview'>): CaseRecord {
   const symptoms: Symptoms = { ...c.symptoms, chestIndrawing: null, stridorWhenCalm: null };
   const d = evaluate({ patient: c.patient, symptoms, breathRatePerMin: null });
   const floored = d.outcome === 'HOME';
@@ -160,7 +160,6 @@ export function buildVoiceCase(e: Extraction, fallbackLang: Lang = 'en'): CaseRe
       },
       status: 'new',
     },
-    e.unclear || unsupported,
   );
 }
 
@@ -186,7 +185,6 @@ export function applyFollowup(c: CaseRecord, field: FollowupField, value: boolea
     if (typeof value !== 'boolean') throw new Error(`${field} needs yes or no`);
     next.symptoms[field] = value;
   }
-  const unclear = c.summary.english.startsWith('[Unclear');
   const { decision: _d, missingFields: _m, needsHumanReview: _n, ...rest } = next;
-  return decide(rest, unclear);
+  return decide(rest);
 }

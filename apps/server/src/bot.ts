@@ -23,7 +23,7 @@ export function decisionMessage(c: CaseRecord): string {
   const L = c.language;
   const card = caregiverCard(L, c.decision.outcome, c.symptoms);
   const lines = [
-    `*${t(L, `decision_${c.decision.outcome}`)}*`,
+    t(L, `decision_${c.decision.outcome}`),
     '',
     ...c.decision.reasonKeys.map((k) => `• ${reasonText(L, k)}`),
   ];
@@ -47,7 +47,8 @@ export function startBot(token: string, db: DB, extractor: Extractor, emit: (e: 
         reply_markup: keyboardFor(c, field),
       });
     } else {
-      await bot.api.sendMessage(chatId, decisionMessage(c), { parse_mode: 'Markdown' });
+      // Plain text: translated reasons and card lines are not Markdown-escaped, and a stray _ or * would make Telegram reject the reply.
+      await bot.api.sendMessage(chatId, decisionMessage(c));
     }
   };
 
