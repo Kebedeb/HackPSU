@@ -1,4 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { evaluate } from '@aman/protocol';
 import type { CaseRecord } from '@aman/types';
@@ -276,5 +279,41 @@ describe('voice intake', () => {
     const res = await app2.app.inject({ method: 'POST', url: '/api/voice-intake', headers: { ...H, 'content-type': 'audio/ogg' }, payload: Buffer.from('x') });
     expect(res.statusCode).toBe(503);
     await app2.app.close();
+  });
+});
+
+describe('static file handler', () => {
+  let web: ReturnType<typeof buildApp>;
+  beforeEach(() => {
+    const base = mkdtempSync(join(tmpdir(), 'aman-web-'));
+    const dist = join(base, 'dist');
+    mkdirSync(dist);
+    writeFileSync(join(dist, 'index.html'), '<!doctype html>index');
+    writeFileSync(join(dist, 'app.js'), 'console.log(1)');
+    writeFileSync(join(base, 'secret.txt'), 'secret');
+    // Sibling whose name shares the root's prefix: the old startsWith check let this through.
+    mkdirSync(join(base, 'dist-private'));
+    writeFileSync(join(base, 'dist-private', 'key.txt'), 'secret');
+    web = buildApp({ db: openDb(':memory:'), dashboardPin: PIN, extractor: async () => blankExtraction, webDist: dist });
+  });
+  afterEach(async () => {
+    await web.app.close();
+  });
+
+  it('serves files inside the root and falls back to index.html', async () => {
+    expect((await web.app.inject({ method: 'GET', url: '/app.js' })).body).toBe('console.log(1)');
+    expect((await web.app.inject({ method: 'GET', url: '/some/route' })).body).toContain('index');
+  });
+
+  it('rejects encoded paths that escape the root', async () => {
+    for (const url of ['/..%2fsecret.txt', '/..%2fdist-private%2fkey.txt', '/%2e%2e%2f%2e%2e%2fsecret.txt']) {
+      const res = await web.app.inject({ method: 'GET', url });
+      expect(res.statusCode, url).toBe(404);
+      expect(res.body, url).not.toContain('secret');
+    }
+  });
+
+  it('returns 400 for a malformed percent-encoding', async () => {
+    expect((await web.app.inject({ method: 'GET', url: '/%E0%A4%A' })).statusCode).toBe(400);
   });
 });
