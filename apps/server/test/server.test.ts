@@ -1,4 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { evaluate } from '@aman/protocol';
 import type { CaseRecord } from '@aman/types';
@@ -203,13 +206,60 @@ describe('voice intake', () => {
     expect(nextFollowup(c)).toBe('unableToDrinkOrFeed');
   });
 
-  it('a fully answered voice case still is not HOME because breath rate needs an observer', () => {
+  it('a fully answered voice case still is not HOME because observer-only fields stay unknown', () => {
     let c = buildVoiceCase({ ...blankExtraction, ageMonths: 24, fever: false, difficultyBreathing: false, chestIndrawing: false, stridorWhenCalm: false, unableToDrinkOrFeed: false, vomitsEverything: false, convulsions: false, unusuallySleepyOrUnconscious: false, diarrhea: false });
-    expect(c.missingFields).toEqual(['breathRatePerMin']);
+    expect([...c.missingFields].sort()).toEqual(['breathRatePerMin', 'chestIndrawing', 'stridorWhenCalm']);
     expect(c.decision.outcome).toBe('REFER_SOON');
     c = buildVoiceCase({ ...blankExtraction, unclear: true });
     expect(c.needsHumanReview).toBe(true);
     expect(c.summary.english).toMatch(/human review required/);
+  });
+
+  const allAnsweredNoCough: Extraction = {
+    ...blankExtraction,
+    ageMonths: 24,
+    cough: false,
+    coughDays: null,
+    fever: false,
+    difficultyBreathing: false,
+    chestIndrawing: false,
+    stridorWhenCalm: false,
+    unableToDrinkOrFeed: false,
+    vomitsEverything: false,
+    convulsions: false,
+    unusuallySleepyOrUnconscious: false,
+    diarrhea: false,
+  };
+
+  it('everything answered and no cough still yields REFER_SOON with review, never HOME', async () => {
+    const c = buildVoiceCase(allAnsweredNoCough);
+    expect(c.decision.outcome).toBe('REFER_SOON');
+    expect(c.decision.reasonKeys).toEqual(['missing_critical_data']);
+    expect(c.needsHumanReview).toBe(true);
+    expect(c.breathRatePerMin).toBeNull();
+
+    const app2 = buildApp({ db: openDb(':memory:'), dashboardPin: PIN, extractor: async () => allAnsweredNoCough });
+    const res = await app2.app.inject({ method: 'POST', url: '/api/voice-intake', headers: { ...H, 'content-type': 'audio/ogg' }, payload: Buffer.from('x') });
+    expect(res.json().case.decision.outcome).toBe('REFER_SOON');
+    expect(res.json().case.needsHumanReview).toBe(true);
+    await app2.app.close();
+  });
+
+  it('ignores chest indrawing = false (and stridor) from Gemini; they stay unknown', () => {
+    const c = buildVoiceCase({ ...blankExtraction, chestIndrawing: false, stridorWhenCalm: false });
+    expect(c.symptoms.chestIndrawing).toBeNull();
+    expect(c.symptoms.stridorWhenCalm).toBeNull();
+    expect(c.missingFields).toContain('chestIndrawing');
+    expect(c.decision.outcome).toBe('REFER_SOON');
+    expect(c.needsHumanReview).toBe(true);
+  });
+
+  it('follow-up answers cannot bring a voice case to HOME', () => {
+    let c = buildVoiceCase({ ...allAnsweredNoCough, ageMonths: null });
+    c = applyFollowup(c, 'ageMonths', 24);
+    expect(c.decision.outcome).toBe('REFER_SOON');
+    expect(c.symptoms.chestIndrawing).toBeNull();
+    expect(c.needsHumanReview).toBe(true);
   });
 
   it('unsupported language is flagged for review', () => {
@@ -229,5 +279,41 @@ describe('voice intake', () => {
     const res = await app2.app.inject({ method: 'POST', url: '/api/voice-intake', headers: { ...H, 'content-type': 'audio/ogg' }, payload: Buffer.from('x') });
     expect(res.statusCode).toBe(503);
     await app2.app.close();
+  });
+});
+
+describe('static file handler', () => {
+  let web: ReturnType<typeof buildApp>;
+  beforeEach(() => {
+    const base = mkdtempSync(join(tmpdir(), 'aman-web-'));
+    const dist = join(base, 'dist');
+    mkdirSync(dist);
+    writeFileSync(join(dist, 'index.html'), '<!doctype html>index');
+    writeFileSync(join(dist, 'app.js'), 'console.log(1)');
+    writeFileSync(join(base, 'secret.txt'), 'secret');
+    // Sibling whose name shares the root's prefix: the old startsWith check let this through.
+    mkdirSync(join(base, 'dist-private'));
+    writeFileSync(join(base, 'dist-private', 'key.txt'), 'secret');
+    web = buildApp({ db: openDb(':memory:'), dashboardPin: PIN, extractor: async () => blankExtraction, webDist: dist });
+  });
+  afterEach(async () => {
+    await web.app.close();
+  });
+
+  it('serves files inside the root and falls back to index.html', async () => {
+    expect((await web.app.inject({ method: 'GET', url: '/app.js' })).body).toBe('console.log(1)');
+    expect((await web.app.inject({ method: 'GET', url: '/some/route' })).body).toContain('index');
+  });
+
+  it('rejects encoded paths that escape the root', async () => {
+    for (const url of ['/..%2fsecret.txt', '/..%2fdist-private%2fkey.txt', '/%2e%2e%2f%2e%2e%2fsecret.txt']) {
+      const res = await web.app.inject({ method: 'GET', url });
+      expect(res.statusCode, url).toBe(404);
+      expect(res.body, url).not.toContain('secret');
+    }
+  });
+
+  it('returns 400 for a malformed percent-encoding', async () => {
+    expect((await web.app.inject({ method: 'GET', url: '/%E0%A4%A' })).statusCode).toBe(400);
   });
 });

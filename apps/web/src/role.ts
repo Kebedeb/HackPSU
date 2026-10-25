@@ -19,6 +19,7 @@ export const ROLE_LINKS: Record<Role, NavLink[]> = {
   ],
   family: [
     { to: '/voice', labelKey: 'voice_link' },
+    { to: '/costs', labelKey: 'costs_link' },
     { to: '/limits', labelKey: 'limits_link' },
   ],
   clinic: [

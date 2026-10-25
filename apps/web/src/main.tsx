@@ -2,6 +2,7 @@ import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Lang } from '@aman/types';
 import { Clinic } from './Clinic';
+import { CostOptions } from './CostOptions';
 import { FieldFlow } from './FieldFlow';
 import { LangContext, useT } from './i18n';
 import { Limits } from './Limits';
@@ -91,6 +92,8 @@ function App() {
     <Clinic />
   ) : path.startsWith('/voice') ? (
     <Voice />
+  ) : path.startsWith('/costs') ? (
+    <CostOptions />
   ) : path.startsWith('/limits') ? (
     <Limits />
   ) : (

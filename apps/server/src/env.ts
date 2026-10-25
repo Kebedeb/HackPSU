@@ -15,6 +15,9 @@ export function loadEnvFile(path = resolve(process.cwd(), '.env')): void {
   }
 }
 
+/** Gemini model used for voice-note extraction when GEMINI_MODEL is unset. */
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
+
 export interface ServerConfig {
   port: number;
   databasePath: string;
@@ -34,7 +37,7 @@ export function readConfig(): ServerConfig {
     dashboardPin: pin || 'demo',
     pinIsPlaceholder: !pin,
     geminiApiKey: process.env.GEMINI_API_KEY || undefined,
-    geminiModel: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
+    geminiModel: process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL,
     telegramToken: process.env.TELEGRAM_BOT_TOKEN || undefined,
     publicUrl: process.env.PUBLIC_URL || undefined,
   };

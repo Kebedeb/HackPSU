@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
-import { extname, join, normalize, resolve } from 'node:path';
+import { extname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import { evaluate } from '@aman/protocol';
 import {
@@ -194,9 +194,19 @@ export function buildApp(opts: AppOptions) {
     const root = resolve(opts.webDist);
     const index = join(root, 'index.html');
     app.get('/*', async (req, reply) => {
-      const urlPath = decodeURIComponent((req.params as { '*': string })['*'] ?? '');
+      let urlPath: string;
+      try {
+        urlPath = decodeURIComponent((req.params as { '*': string })['*'] ?? '');
+      } catch {
+        return reply.code(400).send({ error: 'Bad request path' });
+      }
       const file = normalize(join(root, urlPath));
-      if (file.startsWith(root) && existsSync(file) && statSync(file).isFile()) {
+      // relative() climbs out with '..' (or is absolute on another drive) when file is outside root.
+      const rel = relative(root, file);
+      if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+        return reply.code(404).send({ error: 'Not found' });
+      }
+      if (existsSync(file) && statSync(file).isFile()) {
         const ext = extname(file);
         reply.header('Content-Type', MIME[ext] ?? 'application/octet-stream');
         if (file.endsWith('sw.js') || ext === '.html') reply.header('Cache-Control', 'no-cache');

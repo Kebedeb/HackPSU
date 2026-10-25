@@ -2,9 +2,17 @@
 
 Aman means safety or peace in Urdu and Amharic. It is offline screening and referral support for a sick child, built at HackPSU Fall 2026.
 
-A community health worker answers the child-illness chart questions on a phone, counts breaths, and gets a referral decision: `HOME`, `REFER_SOON` or `GO_NOW`. The decision comes with plain-language reasons and a caregiver card in English, Urdu or Amharic. Families can also send a voice note. The clinic dashboard shows incoming cases ranked by urgency, live.
+## The problem
 
-**Screening support. Not a diagnosis.** Read [docs/SAFETY.md](docs/SAFETY.md) before demoing.
+Pneumonia is one of the leading killers of children under five, and most of those deaths happen far from a doctor. In rural Pakistan and Ethiopia the first person to see a coughing child is often a community health worker, alone at a village home, with a paper chart, no reliable signal, and a hard call to make: treat at home, refer soon, or send the child to a clinic now. When the call is wrong or late, the clinic finds out too late, if at all.
+
+## What Aman does
+
+- **In the field, offline.** The health worker answers the WHO child-illness chart questions on a phone, counts breaths with a tap counter, and gets a referral decision: `HOME`, `REFER_SOON` or `GO_NOW`. The decision comes with plain-language reasons and a caregiver card in English, Urdu or Amharic. Cases queue on the phone and sync when a signal returns.
+- **From families, by voice.** A caregiver can send a voice note to a Telegram bot (or the `/voice` page). Gemini transcribes it and extracts the facts; the same rule engine decides, and the bot asks follow-up questions for anything missing.
+- **At the clinic, live.** The clinic dashboard shows every incoming case ranked by urgency, most urgent first, with the reasons and a suggested nearby clinic with capacity.
+
+> **Limits.** Aman is screening support, not a diagnosis. The symptom rules come from the WHO child-illness chart (IMCI / IMNCI) and are cited in `protocol.json`. Only the cough audio model, the patients and the clinics are demo data: the cough model is trained on synthetic tones and never changes the referral, and no real patient data is used. Urdu and Amharic text are drafts awaiting native review. Read [docs/SAFETY.md](docs/SAFETY.md) before demoing.
 
 ## What decides the referral
 
@@ -19,7 +27,7 @@ A community health worker answers the child-illness chart questions on a phone, 
 apps/web          Vite + React PWA: field flow (/), clinic dashboard (/clinic), voice upload (/voice), model limits (/limits)
 apps/server       Fastify API, SQLite, SSE stream, Telegram bot, Gemini extraction; serves the built web app
 packages/types    Shared types and zod schemas (CaseRecord, Clinic, ...)
-packages/protocol Decision engine, protocol.json (cited), synthetic clinics, 30+ case test table
+packages/protocol Decision engine, protocol.json (cited), demo clinics, 30+ case test table
 packages/audio    Log-mel features, experimental score, occlusion saliency, clip quality checks
 packages/content  Bundled en/ur/am text: reasons, caregiver card, questions (ur/am are drafts)
 ml/               Synthetic-tone training with subject-level splits, metrics.json, golden parity fixture
@@ -35,7 +43,7 @@ pnpm install
 cp .env.example .env        # optional: add GEMINI_API_KEY, TELEGRAM_BOT_TOKEN, DASHBOARD_PIN
 pnpm test                   # protocol table, audio parity, content, server API
 pnpm build                  # builds the PWA into apps/web/dist
-pnpm seed                   # optional: a few synthetic cases for the dashboard
+pnpm seed                   # optional: a few demo cases for the dashboard
 pnpm start                  # http://localhost:3000 serves the API and the built app
 ```
 
@@ -70,7 +78,7 @@ Phones need HTTPS for the microphone. Deploy the single Node server (Render, Rai
 | `GET /api/cases?status=` | PIN | Sorted by GO_NOW, then REFER_SOON, then HOME; then youngest first (unknown age last); then longest waiting. |
 | `PATCH /api/cases/:id` | PIN | `status` or `clinicId`. |
 | `POST /api/cases/:id/route` | PIN | Nearest clinic with capacity, by Haversine distance; prefers a language match, with distance weighted more for GO_NOW. |
-| `GET /api/clinics` | PIN | Synthetic clinics. |
+| `GET /api/clinics` | PIN | Demo clinics. |
 | `GET /api/stream?pin=` | PIN | Server-sent events for live dashboard updates. |
 | `POST /api/voice-intake` | PIN | Raw audio body (`audio/*`); the same extraction path as Telegram. |
 | `POST /api/voice-intake/:id/answer` | PIN | `{ field, value }` follow-up answer. |

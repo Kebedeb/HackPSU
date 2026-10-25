@@ -2,12 +2,15 @@
 
 Before the demo: run `pnpm build && pnpm seed && pnpm start`, open the HTTPS URL on the phone once while online (so the service worker caches everything), and open `/clinic` on the laptop with the PIN.
 
-1. **0:00 The scene (20 s).** A Lady Health Worker in Punjab, or a Health Extension Worker in the Ethiopian highlands, alone at a village home with a coughing child and no doctor.
-2. **0:20 Field flow, offline (60 s).** Turn Wi-Fi off on the phone. Pick a language, accept the disclaimer, enter the age, tap through the danger signs and symptoms, tap the breath counter, and record a cough (or use the synthetic demo clip). Show the decision, the spoken reasons, and the caregiver card. Point out that the cough score is experimental and display-only: it never changes the referral decision.
-3. **1:20 Dashboard (30 s).** Turn Wi-Fi on. The queued case syncs once, and the dashboard updates live: GO_NOW first, the translated summary, the reasons, and "Pick a clinic" with the routing note.
-4. **1:50 Voice note (40 s).** Send a synthetic Urdu or Amharic voice note to the Telegram bot (or use `/voice` if Telegram misbehaves). Show the extraction, a follow-up button, the decision reply, and the new case on the dashboard. Note that a voice note alone never yields HOME, because breaths must be counted by an observer.
-5. **2:30 Honesty (20 s).** Open `/limits`: synthetic tones, subject-level splits, the research operating point marked as not used by the decision, and the line that a high AUROC is separation of synthetic tones only.
-6. **2:50 Close.** Next steps: field trials with health workers, the national IMNCI protocol, real consented pediatric phone-cough data with subject-level evaluation, more languages, and WhatsApp deployment.
+Tell it as one story about one child. The symptom rules come from the WHO child-illness chart; only the cough audio model, the patients and the clinics are demo data.
+
+## The story
+
+1. **0:00 A coughing child (20 s).** A Lady Health Worker in rural Punjab is at a village home. A two-year-old has had a cough for three days and is breathing fast. There is no doctor nearby and no signal. She opens Aman.
+2. **0:20 The worker screens the child, offline (60 s).** Turn Wi-Fi off on the phone. Pick Urdu, accept the disclaimer, and enter the age. Tap through the danger signs and symptoms, count breaths with the tap counter, and record the cough (or use the demo clip). Aman shows the decision, reads the reasons aloud, and shows the caregiver card. Point out that the cough score is experimental and display-only: it never changes the referral decision.
+3. **1:20 A family voice note arrives in Urdu (40 s).** Meanwhile, in another village, a mother sends an Urdu voice note to the Telegram bot about her own child's cough and fever (or use `/voice` if Telegram misbehaves). Show the transcript and extracted facts, the follow-up question button, and the decision reply in Urdu. A voice note alone never yields HOME, because breaths must be counted by someone watching the child.
+4. **2:00 Both cases reach the clinic, most urgent first (40 s).** Turn Wi-Fi back on. The worker's queued case syncs, and the clinic screen updates live. The most urgent child is at the top: GO_NOW before REFER_SOON before HOME, youngest first within each level. Open the case to show the translated summary, the reasons, and "Pick a clinic" with the routing note.
+5. **2:40 Close (20 s).** The child who needed a clinic today is the first one the clinic sees. Briefly open `/limits` to show the cough model is trained on synthetic tones and is not used by the decision. Next steps: field trials with health workers, the national IMNCI protocol, real consented pediatric cough recordings, more languages, and WhatsApp.
 
 ## Fallbacks
 
