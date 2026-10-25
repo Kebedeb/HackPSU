@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AGE_BUCKETS, caregiverCard, reasonText, t as tr } from '@aman/content';
 import type { CaseRecord } from '@aman/types';
 import { Banner, DecisionBadge } from './components';
+import { saveFamilyResult } from './CostOptions';
 import { useT } from './i18n';
+import { navigate } from './router';
 
 interface VoiceResponse {
   case: CaseRecord;
@@ -38,6 +40,10 @@ export function Voice() {
 
   const c = resp?.case;
   const L = c?.language ?? 'en';
+  const finished = !!c && !resp?.nextQuestion;
+  useEffect(() => {
+    if (finished && c) saveFamilyResult({ caseId: c.id, outcome: c.decision.outcome, language: c.language, protocolVersion: c.decision.protocolVersion });
+  }, [finished, c]);
   return (
     <div className="mx-auto max-w-xl space-y-4 px-4 py-6">
       <h1 className="text-3xl font-extrabold">{t('voice_title')}</h1>
@@ -84,6 +90,11 @@ export function Voice() {
             ))}
             {c.needsHumanReview && <Banner tone="warn">{tr(L, 'needs_review')}</Banner>}
           </div>
+          {finished && (
+            <button className="btn-primary w-full" onClick={() => navigate('/costs')}>
+              {tr(L, 'see_costs')}
+            </button>
+          )}
           <div className="card space-y-1 text-sm">
             <p className="font-semibold">{caregiverCard(L, c.decision.outcome, c.symptoms).title}</p>
             {caregiverCard(L, c.decision.outcome, c.symptoms).lines.map((l) => (
