@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { caregiverCard, reasonText } from '@aman/content';
+import { caregiverCard, reasonText, t as tr } from '@aman/content';
 import type { CaseRecord, Decision, Lang } from '@aman/types';
 import { navigate } from './router';
 import { useT } from './i18n';
@@ -18,12 +18,12 @@ export function Banner({ children, tone = 'teal' }: { children: ReactNode; tone?
 export function DecisionBadge({ outcome, lang, size = 'lg' }: { outcome: Decision; lang?: Lang; size?: 'sm' | 'lg' }) {
   const { t } = useT();
   const s = DECISION_STYLE[outcome];
-  const label = lang ? undefined : t(`decision_${outcome}`);
+  const label = lang ? tr(lang, `decision_${outcome}`) : t(`decision_${outcome}`);
   if (size === 'sm') {
     return (
       <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-bold ${s.fg} ${s.bg} ${s.ring}`}>
         <span aria-hidden>{s.icon}</span>
-        {outcome.replace('_', ' ')}
+        {label}
       </span>
     );
   }
@@ -34,7 +34,6 @@ export function DecisionBadge({ outcome, lang, size = 'lg' }: { outcome: Decisio
       </span>
       <div>
         <div className={`text-2xl font-extrabold leading-tight ${s.fg}`}>{label}</div>
-        <div className="text-xs font-semibold tracking-wider text-ink-soft">{outcome}</div>
       </div>
     </div>
   );
@@ -54,6 +53,7 @@ export function ReasonList({ keys, lang }: { keys: string[]; lang: Lang }) {
 }
 
 export function Spectrogram({ frames }: { frames: Float64Array[] }) {
+  const { t } = useT();
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const c = ref.current;
@@ -83,19 +83,20 @@ export function Spectrogram({ frames }: { frames: Float64Array[] }) {
     }
     ctx.putImageData(img, 0, 0);
   }, [frames]);
-  return <canvas ref={ref} className="h-20 w-full rounded-lg [image-rendering:pixelated]" aria-label="Spectrogram of the recorded clip" />;
+  return <canvas ref={ref} className="h-20 w-full rounded-lg [image-rendering:pixelated]" aria-label={t('spectrogram_label')} />;
 }
 
 export function SaliencyStrip({ values }: { values: number[] }) {
+  const { t } = useT();
   const max = Math.max(1e-9, ...values.map((v) => Math.abs(v)));
   return (
-    <div className="flex gap-0.5" role="img" aria-label="Per-second influence on the experimental score">
+    <div className="flex gap-0.5" role="img" aria-label={t('saliency_label')}>
       {values.map((v, i) => {
         const a = Math.abs(v) / max;
         return (
           <div key={i} className="flex-1 text-center">
             <div className="h-5 rounded" style={{ background: v >= 0 ? `rgba(138,90,0,${0.1 + 0.9 * a})` : `rgba(15,76,74,${0.1 + 0.9 * a})` }} />
-            <div className="mt-0.5 text-[10px] text-ink-soft">{i + 1}s</div>
+            <div className="mt-0.5 text-[10px] text-ink-soft">{i + 1} {t('seconds_short')}</div>
           </div>
         );
       })}

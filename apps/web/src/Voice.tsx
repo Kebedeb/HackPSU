@@ -50,8 +50,8 @@ export function Voice() {
       <p className="text-ink-soft">{t('voice_body')}</p>
       <Banner tone="warn">{t('synthetic_banner')}</Banner>
       <div className="card space-y-3">
-        <input className="min-h-12 w-full rounded-xl border-2 border-teal/30 bg-white px-3" type="password" placeholder="Dashboard PIN" value={pin} onChange={(e) => setPin(e.target.value)} aria-label="Dashboard PIN" />
-        <input type="file" accept="audio/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="block w-full text-sm" aria-label="Voice note file" />
+        <input className="min-h-12 w-full rounded-xl border-2 border-teal/30 bg-white px-3" type="password" placeholder={t('dashboard_pin')} value={pin} onChange={(e) => setPin(e.target.value)} aria-label={t('dashboard_pin')} />
+        <input type="file" accept="audio/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="block w-full text-sm" aria-label={t('voice_file')} />
         <button className="btn-primary w-full" disabled={!file || busy} onClick={() => call('/api/voice-intake', { method: 'POST', headers: { 'Content-Type': file!.type || 'audio/ogg' }, body: file })}>
           {busy ? '…' : t('voice_upload')}
         </button>
@@ -83,7 +83,7 @@ export function Voice() {
               )}
             </div>
           ) : null}
-          <DecisionBadge outcome={c.decision.outcome} />
+          <DecisionBadge outcome={c.decision.outcome} lang={L} />
           <div className="card space-y-2">
             {c.decision.reasonKeys.map((k) => (
               <p key={k}>• {reasonText(L, k)}</p>
@@ -101,9 +101,9 @@ export function Voice() {
               <p key={l}>{l}</p>
             ))}
           </div>
-          <details className="card text-sm" dir="ltr" lang="en">
-            <summary className="cursor-pointer font-semibold">Transcript and English summary (kept for review)</summary>
-            <p className="mt-2">{c.summary.english}</p>
+          <details className="card text-sm">
+            <summary className="cursor-pointer font-semibold">{tr(L, 'voice_review')}</summary>
+            <p className="mt-2" dir="ltr" lang="en">{c.summary.english}</p>
             <p className="mt-2" lang={L} dir={L === 'ur' ? 'rtl' : 'ltr'}>
               {c.summary.transcript}
             </p>

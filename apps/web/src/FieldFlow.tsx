@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { LANG_NAMES, QUESTION_ORDER, TRANSLATION_STATUS } from '@aman/content';
+import { QUESTION_ORDER, TRANSLATION_STATUS } from '@aman/content';
 import { evaluate, fastBreathingCutoff } from '@aman/protocol';
-import { LANGS, type BooleanSymptomKey, type CaseRecord, type Lang, type Symptoms } from '@aman/types';
+import type { BooleanSymptomKey, CaseRecord, Symptoms } from '@aman/types';
 import { analyseClip, loadDemoClip, recordClip, type ClipAnalysis } from './audio';
 import { Banner, CaregiverCardView, DecisionBadge, ExperimentalAudio, ReasonList } from './components';
 import { speak, useT } from './i18n';
 import { saveLocal, syncNow } from './store';
 
 type Step =
-  | { kind: 'lang' }
   | { kind: 'consent' }
   | { kind: 'age' }
   | { kind: 'yesno'; field: BooleanSymptomKey }
@@ -43,7 +42,7 @@ function jitter(c: { lat: number; lng: number }) {
 }
 
 function buildSteps(symptoms: Symptoms): Step[] {
-  const steps: Step[] = [{ kind: 'lang' }, { kind: 'consent' }, { kind: 'age' }];
+  const steps: Step[] = [{ kind: 'consent' }, { kind: 'age' }];
   for (const f of QUESTION_ORDER.dangerSigns) steps.push({ kind: 'yesno', field: f });
   for (const f of QUESTION_ORDER.symptoms) {
     steps.push({ kind: 'yesno', field: f });
@@ -54,7 +53,7 @@ function buildSteps(symptoms: Symptoms): Step[] {
 }
 
 export function FieldFlow() {
-  const { t, lang, setLang, dir } = useT();
+  const { t, lang, dir } = useT();
   const [idx, setIdx] = useState(0);
   const [ageMonths, setAgeMonths] = useState<number | null>(null);
   const [symptoms, setSymptoms] = useState<Symptoms>(EMPTY);
@@ -90,7 +89,7 @@ export function FieldFlow() {
   };
 
   const reset = () => {
-    setIdx(2);
+    setIdx(1);
     setAgeMonths(null);
     setSymptoms(EMPTY);
     setBreathRate(null);
@@ -115,31 +114,10 @@ export function FieldFlow() {
 
   return (
     <div dir={dir} lang={lang} className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-xl flex-col gap-5 px-4 pb-10 pt-4">
-      {idx > 1 && (
+      {idx > 0 && (
         <div className="h-1.5 overflow-hidden rounded-full bg-ink/10" aria-hidden>
           <div className="h-full bg-teal transition-all" style={{ width: `${progress}%` }} />
         </div>
-      )}
-
-      {step.kind === 'lang' && (
-        <Screen title={t('choose_language')}>
-          <div className="grid gap-3">
-            {LANGS.map((l: Lang) => (
-              <button
-                key={l}
-                lang={l}
-                className={`btn-quiet justify-between text-xl ${lang === l ? 'border-teal bg-teal-soft' : ''}`}
-                onClick={() => {
-                  setLang(l);
-                  next();
-                }}
-              >
-                <span>{LANG_NAMES[l]}</span>
-                {TRANSLATION_STATUS[l] !== 'source' && <span className="text-xs font-medium text-soon">draft</span>}
-              </button>
-            ))}
-          </div>
-        </Screen>
       )}
 
       {step.kind === 'consent' && (
@@ -216,7 +194,7 @@ export function FieldFlow() {
           <CaregiverCardView record={record} />
           <div className="no-print grid grid-cols-2 gap-3">
             <button className="btn-quiet" onClick={() => window.print()}>
-              🖨 Print
+              🖨 {t('print')}
             </button>
             <button className="btn-primary" onClick={reset}>
               {t('new_case')}
@@ -227,7 +205,7 @@ export function FieldFlow() {
 
       {idx > 0 && step.kind !== 'card' && (
         <button className="no-print self-start text-sm font-semibold text-ink-soft underline" onClick={back}>
-          {dir === 'rtl' ? '→' : '←'} {t('back')}
+          <span aria-hidden="true" dir="ltr">←</span> {t('back')}
         </button>
       )}
     </div>
@@ -408,7 +386,7 @@ function BreathCounter({ ageMonths, onDone }: { ageMonths: number | null; onDone
         aria-label={t('breath_tap')}
       >
         <span className="text-7xl font-black tabular-nums">{count}</span>
-        <span className="mt-1 text-base font-semibold">{running ? `${left}s · ${t('breath_tap')}` : finished ? t('breath_count') : t('start')}</span>
+        <span className="mt-1 text-base font-semibold">{running ? `${left} ${t('seconds_short')} · ${t('breath_tap')}` : finished ? t('breath_count') : t('start')}</span>
       </button>
       <dl className="grid grid-cols-2 gap-3 text-center">
         <div className="card p-3">
@@ -533,7 +511,7 @@ function ResultScreen({ record, clip, saved, onSave, onCard, onNew }: { record: 
               {t('needs_review')}
               {record.missingFields.length > 0 && (
                 <span className="mt-1 block text-xs font-normal">
-                  {t('missing_fields')}: {record.missingFields.join(', ')}
+                  {t('missing_fields')}: {record.missingFields.map((field) => t(field === 'ageMonths' ? 'age_title' : field === 'breathRatePerMin' ? 'breath_rate' : `q_${field}`)).join(' · ')}
                 </span>
               )}
             </Banner>
