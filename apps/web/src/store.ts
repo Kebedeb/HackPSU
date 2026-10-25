@@ -4,7 +4,8 @@ import type { CaseRecord } from '@aman/types';
 export interface LocalCase {
   id: string;
   record: CaseRecord;
-  synced: 0 | 1;
+  /** 0 pending, 1 sent, -1 rejected by the server (kept on the phone, not retried). */
+  synced: 0 | 1 | -1;
   savedAt: string;
 }
 
@@ -41,6 +42,11 @@ export function syncNow(): Promise<number> {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(c.record),
         });
+        // A 4xx will fail the same way every time, so stop retrying it; 5xx stays queued.
+        if (res.status >= 400 && res.status < 500) {
+          await localDb.cases.update(c.id, { synced: -1 });
+          continue;
+        }
         if (!res.ok) continue;
         await localDb.cases.update(c.id, { synced: 1 });
         sent++;

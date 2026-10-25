@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { evaluate } from '@aman/protocol';
 import type { CaseRecord } from '@aman/types';
 import { TABLE, mk } from '../../../packages/protocol/test/cases';
-import { buildApp } from '../src/app';
+import { buildApp, redactPin } from '../src/app';
 import { openDb } from '../src/db';
 import { pickClinic } from '../src/routing';
 import { buildVoiceCase, applyFollowup, nextFollowup, VoiceUnavailableError, type Extraction } from '../src/voice';
@@ -156,6 +156,45 @@ describe('cases API', () => {
 });
 
 describe('routing', () => {
+  const capacity = async (id: string) =>
+    ((await ctx.app.inject({ method: 'GET', url: '/api/clinics', headers: H })).json() as { id: string; capacityRemaining: number }[]).find((c) => c.id === id)!.capacityRemaining;
+  const routedCase = async () => {
+    const p = submission({ language: 'ur' } as never, mk({ s: { convulsions: true } }));
+    await ctx.app.inject({ method: 'POST', url: '/api/cases', payload: p });
+    await ctx.app.inject({ method: 'POST', url: `/api/cases/${p.id}/route`, headers: H });
+    return p.id;
+  };
+
+  it('routing the same case twice holds only one place', async () => {
+    const id = await routedCase();
+    const again = (await ctx.app.inject({ method: 'POST', url: `/api/cases/${id}/route`, headers: H })).json();
+    expect(again.clinicId).toBe('pk-lhr');
+    expect(await capacity('pk-lhr')).toBe(3);
+  });
+
+  it('closing, reopening, unassigning and reassigning move the place', async () => {
+    const id = await routedCase();
+    const patch = (payload: object) => ctx.app.inject({ method: 'PATCH', url: `/api/cases/${id}`, headers: H, payload });
+    await patch({ status: 'closed' });
+    expect(await capacity('pk-lhr')).toBe(4);
+    await patch({ status: 'closed' });
+    expect(await capacity('pk-lhr')).toBe(4);
+    await patch({ status: 'en_route' });
+    expect(await capacity('pk-lhr')).toBe(3);
+    await patch({ clinicId: 'pk-kasur' });
+    expect(await capacity('pk-lhr')).toBe(4);
+    expect(await capacity('pk-kasur')).toBe(1);
+    await patch({ clinicId: null });
+    expect(await capacity('pk-kasur')).toBe(2);
+  });
+
+  it('refuses a manual assignment to a full clinic', async () => {
+    const id = await routedCase();
+    const res = await ctx.app.inject({ method: 'PATCH', url: `/api/cases/${id}`, headers: H, payload: { clinicId: 'pk-sheikh' } });
+    expect(res.statusCode).toBe(409);
+    expect(await capacity('pk-lhr')).toBe(3);
+  });
+
   it('assigns the nearest clinic with capacity and decrements capacity', async () => {
     const p = submission({ language: 'ur' } as never, mk({ s: { convulsions: true } }));
     await ctx.app.inject({ method: 'POST', url: '/api/cases', payload: p });
@@ -313,7 +352,21 @@ describe('static file handler', () => {
     }
   });
 
+  it('returns 404 for a missing file instead of the app shell', async () => {
+    const res = await web.app.inject({ method: 'GET', url: '/audio/en/consent.mp3' });
+    expect(res.statusCode).toBe(404);
+    expect(res.body).not.toContain('index');
+  });
+
   it('returns 400 for a malformed percent-encoding', async () => {
     expect((await web.app.inject({ method: 'GET', url: '/%E0%A4%A' })).statusCode).toBe(400);
+  });
+});
+
+describe('logging', () => {
+  it('redacts the dashboard PIN from logged URLs', () => {
+    expect(redactPin('/api/stream?pin=1234')).toBe('/api/stream?pin=[redacted]');
+    expect(redactPin('/api/cases?status=new&pin=abc&x=1')).toBe('/api/cases?status=new&pin=[redacted]&x=1');
+    expect(redactPin('/api/cases?spin=1')).toBe('/api/cases?spin=1');
   });
 });

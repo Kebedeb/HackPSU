@@ -154,7 +154,7 @@ export const OUTCOME_RANK: Record<Decision, number> = { HOME: 0, REFER_SOON: 1, 
 export function emptySymptoms(value: boolean | null = false): Symptoms {
   return {
     cough: value,
-    coughDays: value === true ? null : null,
+    coughDays: null,
     fever: value,
     difficultyBreathing: value,
     chestIndrawing: value,

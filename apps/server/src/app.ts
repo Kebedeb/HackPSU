@@ -44,8 +44,21 @@ const MIME: Record<string, string> = {
   '.txt': 'text/plain; charset=utf-8',
 };
 
+export function redactPin(url: string): string {
+  return url.replace(/([?&]pin=)[^&]*/g, '$1[redacted]');
+}
+
+/** The clinic place a case is holding: assigned and not closed. */
+function heldClinic(c: CaseRecord): string | null {
+  return c.clinicId && c.status !== 'closed' ? c.clinicId : null;
+}
+
 export function buildApp(opts: AppOptions) {
-  const app = Fastify({ logger: opts.logger ?? false, bodyLimit: 15 * 1024 * 1024 });
+  const app = Fastify({
+    // The SSE stream carries the PIN in its query string (EventSource cannot set headers), so keep it out of logs.
+    logger: opts.logger ? { serializers: { req: (req) => ({ method: req.method, url: redactPin(req.url) }) } } : false,
+    bodyLimit: 15 * 1024 * 1024,
+  });
   const { db } = opts;
   const listeners = new Set<(e: CaseEvent) => void>();
   const emit = (e: CaseEvent) => listeners.forEach((l) => l(e));
@@ -56,6 +69,17 @@ export function buildApp(opts: AppOptions) {
     const q = req.query as Record<string, string | undefined>;
     const pin = (req.headers['x-dashboard-pin'] as string | undefined) ?? q.pin;
     if (pin !== opts.dashboardPin) return reply.code(401).send({ error: 'Dashboard PIN required (demo placeholder, not real authentication).' });
+  };
+
+  /** Moves one place of capacity when the clinic a case holds changes (assign, reassign, unassign, close, reopen). */
+  const moveHold = (before: CaseRecord, after: CaseRecord) => {
+    const from = heldClinic(before);
+    const to = heldClinic(after);
+    if (from === to) return;
+    const a = from ? getClinic(db, from) : null;
+    if (a) saveClinic(db, { ...a, capacityRemaining: a.capacityRemaining + 1 });
+    const b = to ? getClinic(db, to) : null;
+    if (b) saveClinic(db, { ...b, capacityRemaining: Math.max(0, b.capacityRemaining - 1) });
   };
 
   const store = (c: CaseRecord, type: CaseEvent['type']) => {
@@ -126,21 +150,30 @@ export function buildApp(opts: AppOptions) {
         delete next.clinicId;
         delete next.routingNote;
       } else {
-        if (!getClinic(db, parsed.data.clinicId)) return reply.code(400).send({ error: 'Unknown clinic' });
+        const k = getClinic(db, parsed.data.clinicId);
+        if (!k) return reply.code(400).send({ error: 'Unknown clinic' });
+        if (parsed.data.clinicId !== heldClinic(c) && k.capacityRemaining <= 0 && next.status !== 'closed') {
+          return reply.code(409).send({ error: 'That clinic has no capacity' });
+        }
         next.clinicId = parsed.data.clinicId;
         next.routingNote = 'Assigned manually by clinic staff.';
       }
     }
+    moveHold(c, next);
     return store(next, 'case_updated');
   });
 
   app.post('/api/cases/:id/route', { preHandler: requirePin }, async (req, reply) => {
     const c = getCase(db, (req.params as { id: string }).id);
     if (!c) return reply.code(404).send({ error: 'Not found' });
-    const choice = pickClinic(c, listClinics(db));
+    // Re-routing gives back the place the case already holds before choosing again.
+    const held = heldClinic(c);
+    const clinics = listClinics(db).map((k) => (k.id === held ? { ...k, capacityRemaining: k.capacityRemaining + 1 } : k));
+    const choice = pickClinic(c, clinics);
     if (!choice) return reply.code(409).send({ error: 'No clinic has capacity' });
-    saveClinic(db, { ...choice.clinic, capacityRemaining: choice.clinic.capacityRemaining - 1 });
-    return store({ ...c, clinicId: choice.clinic.id, routingNote: choice.note }, 'case_updated');
+    const next = { ...c, clinicId: choice.clinic.id, routingNote: choice.note };
+    moveHold(c, next);
+    return store(next, 'case_updated');
   });
 
   app.get('/api/clinics', { preHandler: requirePin }, async () => listClinics(db));
@@ -212,7 +245,8 @@ export function buildApp(opts: AppOptions) {
         if (file.endsWith('sw.js') || ext === '.html') reply.header('Cache-Control', 'no-cache');
         return reply.send(readFileSync(file));
       }
-      if (urlPath.startsWith('api/')) return reply.code(404).send({ error: 'Not found' });
+      // Missing files (e.g. an unrecorded audio prompt) are a 404, not the app shell.
+      if (urlPath.startsWith('api/') || extname(urlPath) !== '') return reply.code(404).send({ error: 'Not found' });
       reply.header('Content-Type', MIME['.html']).header('Cache-Control', 'no-cache');
       return reply.send(readFileSync(index));
     });

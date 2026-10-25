@@ -1,7 +1,6 @@
-import { StrictMode, useEffect, useState } from 'react';
+import { lazy, StrictMode, Suspense, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Lang } from '@aman/types';
-import { Clinic } from './Clinic';
 import { CostOptions } from './CostOptions';
 import { FieldFlow } from './FieldFlow';
 import { LangContext, useT } from './i18n';
@@ -12,6 +11,9 @@ import { navigate, usePath } from './router';
 import { pendingCount, syncNow } from './store';
 import { Voice } from './Voice';
 import './styles.css';
+
+// Leaflet is only needed on the clinic dashboard, so keep it out of the field app's main bundle.
+const Clinic = lazy(() => import('./Clinic').then((m) => ({ default: m.Clinic })));
 
 function Header({ role, onChangeRole }: { role: Role | null; onChangeRole: () => void }) {
   const { t } = useT();
@@ -102,7 +104,9 @@ function App() {
   return (
     <LangContext.Provider value={{ lang, setLang }}>
       <Header role={role} onChangeRole={() => setRole(null)} />
-      <main>{page}</main>
+      <main>
+        <Suspense fallback={null}>{page}</Suspense>
+      </main>
     </LangContext.Provider>
   );
 }
