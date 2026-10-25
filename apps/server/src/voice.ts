@@ -106,13 +106,27 @@ export function caseLanguage(e: Extraction, fallback: Lang = 'en'): Lang {
   return (LANGS as readonly string[]).includes(e.language) ? (e.language as Lang) : fallback;
 }
 
+/**
+ * Every voice-note case goes through here. Fields only a trained observer can check are forced
+ * unknown whatever the extraction or a follow-up says, and the outcome is floored at REFER_SOON
+ * with human review, so a voice note never ends in HOME even if the protocol config changes.
+ */
 function decide(c: Omit<CaseRecord, 'decision' | 'missingFields' | 'needsHumanReview'>, forceReview: boolean): CaseRecord {
-  const d = evaluate({ patient: c.patient, symptoms: c.symptoms, breathRatePerMin: c.breathRatePerMin });
+  const symptoms: Symptoms = { ...c.symptoms, chestIndrawing: null, stridorWhenCalm: null };
+  const d = evaluate({ patient: c.patient, symptoms, breathRatePerMin: null });
+  const floored = d.outcome === 'HOME';
   return {
     ...c,
-    decision: { outcome: d.outcome, reasonKeys: d.reasonKeys, protocolVersion: d.protocolVersion, audioEscalated: d.audioEscalated },
+    symptoms,
+    breathRatePerMin: null,
+    decision: {
+      outcome: floored ? 'REFER_SOON' : d.outcome,
+      reasonKeys: floored ? ['missing_critical_data'] : d.reasonKeys,
+      protocolVersion: d.protocolVersion,
+      audioEscalated: d.audioEscalated,
+    },
     missingFields: d.missingFields,
-    needsHumanReview: d.needsHumanReview || forceReview,
+    needsHumanReview: true,
   };
 }
 
@@ -123,8 +137,8 @@ export function buildVoiceCase(e: Extraction, fallbackLang: Lang = 'en'): CaseRe
     coughDays: e.coughDays,
     fever: e.fever,
     difficultyBreathing: e.difficultyBreathing,
-    chestIndrawing: e.chestIndrawing,
-    stridorWhenCalm: e.stridorWhenCalm,
+    chestIndrawing: null,
+    stridorWhenCalm: null,
     unableToDrinkOrFeed: e.unableToDrinkOrFeed,
     vomitsEverything: e.vomitsEverything,
     convulsions: e.convulsions,
